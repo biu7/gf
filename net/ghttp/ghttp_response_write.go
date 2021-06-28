@@ -218,6 +218,7 @@ func (r *Response) WriteProtoBuf(content interface{}) error {
 		} else {
 			r.Header().Set("Content-Type", "application/x-protobuf")
 			r.Write(b)
+			return nil
 		}
 	}
 	return errors.New("not available proto message")
