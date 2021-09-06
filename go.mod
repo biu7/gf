@@ -15,7 +15,9 @@ require (
 	go.opentelemetry.io/otel v1.0.0-RC2
 	go.opentelemetry.io/otel/oteltest v1.0.0-RC2
 	go.opentelemetry.io/otel/trace v1.0.0-RC2
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
 	golang.org/x/text v0.3.6
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
