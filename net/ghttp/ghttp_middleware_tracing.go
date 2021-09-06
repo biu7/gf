@@ -43,7 +43,7 @@ func MiddlewareClientTracing(c *Client, r *http.Request) (*ClientResponse, error
 func MiddlewareServerTracing(r *Request) {
 	tr := otel.GetTracerProvider().Tracer(tracingInstrumentName, trace.WithInstrumentationVersion(gf.VERSION))
 	ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
-	ctx, span := tr.Start(ctx, r.URL.String(), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tr.Start(ctx, r.URL.Path, trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	span.SetAttributes(gtrace.CommonLabels()...)
