@@ -10,7 +10,6 @@ package ghttp
 import (
 	"errors"
 	"fmt"
-	"github.com/gogf/gf/internal/json"
 	"google.golang.org/protobuf/proto"
 	"net/http"
 
