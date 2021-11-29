@@ -15,17 +15,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/gogf/gf/errors/gcode"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gogf/gf/errors/gerror"
-	"github.com/gogf/gf/internal/intlog"
-	"github.com/gogf/gf/text/gregex"
-	"github.com/gogf/gf/text/gstr"
-	"github.com/gogf/gf/util/gconv"
+	"github.com/gogf/gf/v2/errors/gcode"
+	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/internal/intlog"
+	"github.com/gogf/gf/v2/text/gregex"
+	"github.com/gogf/gf/v2/text/gstr"
+	"github.com/gogf/gf/v2/util/gconv"
 )
 
 // DriverOracle is the driver for oracle database.
@@ -98,7 +98,7 @@ func (d *DriverOracle) DoCommit(ctx context.Context, link Link, sql string, args
 		if reflect.TypeOf(v).Kind() == reflect.String {
 			valueStr := gconv.String(v)
 			if gregex.IsMatchString(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$`, valueStr) {
-				//args[i] = fmt.Sprintf(`TO_DATE('%s','yyyy-MM-dd HH:MI:SS')`, valueStr)
+				// args[i] = fmt.Sprintf(`TO_DATE('%s','yyyy-MM-dd HH:MI:SS')`, valueStr)
 				args[i], _ = time.ParseInLocation("2006-01-02 15:04:05", valueStr, time.Local)
 			}
 		}
@@ -193,15 +193,13 @@ func (d *DriverOracle) TableFields(ctx context.Context, table string, schema ...
 	if len(schema) > 0 && schema[0] != "" {
 		useSchema = schema[0]
 	}
-	tableFieldsCacheKey := fmt.Sprintf(
-		`oracle_table_fields_%s_%s@group:%s`,
-		table, useSchema, d.GetGroup(),
-	)
-	v := tableFieldsMap.GetOrSetFuncLock(tableFieldsCacheKey, func() interface{} {
-		var (
-			result       Result
-			link, err    = d.SlaveLink(useSchema)
-			structureSql = fmt.Sprintf(`
+	v := tableFieldsMap.GetOrSetFuncLock(
+		fmt.Sprintf(`oracle_table_fields_%s_%s@group:%s`, table, useSchema, d.GetGroup()),
+		func() interface{} {
+			var (
+				result       Result
+				link         Link
+				structureSql = fmt.Sprintf(`
 SELECT 
 	COLUMN_NAME AS FIELD, 
 	CASE DATA_TYPE  
@@ -209,27 +207,28 @@ SELECT
 	WHEN 'FLOAT' THEN DATA_TYPE||'('||DATA_PRECISION||','||DATA_SCALE||')' 
 	ELSE DATA_TYPE||'('||DATA_LENGTH||')' END AS TYPE  
 FROM USER_TAB_COLUMNS WHERE TABLE_NAME = '%s' ORDER BY COLUMN_ID`,
-				strings.ToUpper(table),
+					strings.ToUpper(table),
+				)
 			)
-		)
-		if err != nil {
-			return nil
-		}
-		structureSql, _ = gregex.ReplaceString(`[\n\r\s]+`, " ", gstr.Trim(structureSql))
-		result, err = d.DoGetAll(ctx, link, structureSql)
-		if err != nil {
-			return nil
-		}
-		fields = make(map[string]*TableField)
-		for i, m := range result {
-			fields[strings.ToLower(m["FIELD"].String())] = &TableField{
-				Index: i,
-				Name:  strings.ToLower(m["FIELD"].String()),
-				Type:  strings.ToLower(m["TYPE"].String()),
+			if link, err = d.SlaveLink(useSchema); err != nil {
+				return nil
 			}
-		}
-		return fields
-	})
+			structureSql, _ = gregex.ReplaceString(`[\n\r\s]+`, " ", gstr.Trim(structureSql))
+			result, err = d.DoGetAll(ctx, link, structureSql)
+			if err != nil {
+				return nil
+			}
+			fields = make(map[string]*TableField)
+			for i, m := range result {
+				fields[strings.ToLower(m["FIELD"].String())] = &TableField{
+					Index: i,
+					Name:  strings.ToLower(m["FIELD"].String()),
+					Type:  strings.ToLower(m["TYPE"].String()),
+				}
+			}
+			return fields
+		},
+	)
 	if v != nil {
 		fields = v.(map[string]*TableField)
 	}
@@ -267,7 +266,7 @@ func (d *DriverOracle) DoInsert(ctx context.Context, link Link, table string, li
 		listLength  = len(list)
 		valueHolder = make([]string, 0)
 	)
-	for k, _ := range list[0] {
+	for k := range list[0] {
 		keys = append(keys, k)
 		valueHolder = append(valueHolder, "?")
 	}

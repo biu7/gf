@@ -9,15 +9,16 @@ package gdb
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"reflect"
 
-	"github.com/gogf/gf/container/gtype"
-	"github.com/gogf/gf/os/gtime"
-	"github.com/gogf/gf/util/gconv"
-	"github.com/gogf/gf/util/guid"
-
-	"github.com/gogf/gf/text/gregex"
+	"github.com/gogf/gf/v2/container/gtype"
+	"github.com/gogf/gf/v2/errors/gcode"
+	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/internal/utils"
+	"github.com/gogf/gf/v2/os/gtime"
+	"github.com/gogf/gf/v2/text/gregex"
+	"github.com/gogf/gf/v2/util/gconv"
+	"github.com/gogf/gf/v2/util/guid"
 )
 
 // TX is the struct for transaction management.
@@ -37,16 +38,14 @@ const (
 	transactionIdForLoggerCtx   = "TransactionId"
 )
 
-var (
-	transactionIdGenerator = gtype.NewUint64()
-)
+var transactionIdGenerator = gtype.NewUint64()
 
 // Begin starts and returns the transaction object.
 // You should call Commit or Rollback functions of the transaction object
 // if you no longer use the transaction. Commit or Rollback functions will also
 // close the transaction automatically.
-func (c *Core) Begin() (tx *TX, err error) {
-	return c.doBeginCtx(c.GetCtx())
+func (c *Core) Begin(ctx context.Context) (tx *TX, err error) {
+	return c.doBeginCtx(ctx)
 }
 
 func (c *Core) doBeginCtx(ctx context.Context) (*TX, error) {
@@ -61,7 +60,7 @@ func (c *Core) doBeginCtx(ctx context.Context) (*TX, error) {
 			mTime2     = gtime.TimestampMilli()
 			sqlObj     = &Sql{
 				Sql:           sqlStr,
-				Type:          "DB.Begin",
+				Type:          sqlTypeBegin,
 				Args:          nil,
 				Format:        sqlStr,
 				Error:         err,
@@ -98,9 +97,7 @@ func (c *Core) doBeginCtx(ctx context.Context) (*TX, error) {
 // Note that, you should not Commit or Rollback the transaction in function `f`
 // as it is automatically handled by this function.
 func (c *Core) Transaction(ctx context.Context, f func(ctx context.Context, tx *TX) error) (err error) {
-	var (
-		tx *TX
-	)
+	var tx *TX
 	if ctx == nil {
 		ctx = c.GetCtx()
 	}
@@ -117,8 +114,12 @@ func (c *Core) Transaction(ctx context.Context, f func(ctx context.Context, tx *
 	tx.ctx = WithTX(tx.ctx, tx)
 	defer func() {
 		if err == nil {
-			if e := recover(); e != nil {
-				err = fmt.Errorf("%v", e)
+			if exception := recover(); exception != nil {
+				if v, ok := exception.(error); ok && gerror.HasStack(v) {
+					err = v
+				} else {
+					err = gerror.NewCodef(gcode.CodeInternalError, "%+v", exception)
+				}
 			}
 		}
 		if err != nil {
@@ -204,7 +205,7 @@ func (tx *TX) Commit() error {
 		mTime2 = gtime.TimestampMilli()
 		sqlObj = &Sql{
 			Sql:           sqlStr,
-			Type:          "TX.Commit",
+			Type:          sqlTypeTXCommit,
 			Args:          nil,
 			Format:        sqlStr,
 			Error:         err,
@@ -238,7 +239,7 @@ func (tx *TX) Rollback() error {
 		mTime2 = gtime.TimestampMilli()
 		sqlObj = &Sql{
 			Sql:           sqlStr,
-			Type:          "TX.Rollback",
+			Type:          sqlTypeTXRollback,
 			Args:          nil,
 			Format:        sqlStr,
 			Error:         err,
@@ -307,8 +308,12 @@ func (tx *TX) Transaction(ctx context.Context, f func(ctx context.Context, tx *T
 	}
 	defer func() {
 		if err == nil {
-			if e := recover(); e != nil {
-				err = fmt.Errorf("%v", e)
+			if exception := recover(); exception != nil {
+				if v, ok := exception.(error); ok && gerror.HasStack(v) {
+					err = v
+				} else {
+					err = gerror.NewCodef(gcode.CodeInternalError, "%+v", exception)
+				}
 			}
 		}
 		if err != nil {
@@ -327,7 +332,7 @@ func (tx *TX) Transaction(ctx context.Context, f func(ctx context.Context, tx *T
 
 // Query does query operation on transaction.
 // See Core.Query.
-func (tx *TX) Query(sql string, args ...interface{}) (rows *sql.Rows, err error) {
+func (tx *TX) Query(sql string, args ...interface{}) (result Result, err error) {
 	return tx.db.DoQuery(tx.ctx, &txLink{tx.tx}, sql, args...)
 }
 
@@ -348,12 +353,7 @@ func (tx *TX) Prepare(sql string) (*Stmt, error) {
 
 // GetAll queries and returns data records from database.
 func (tx *TX) GetAll(sql string, args ...interface{}) (Result, error) {
-	rows, err := tx.Query(sql, args...)
-	if err != nil || rows == nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return tx.db.GetCore().convertRowsToResult(rows)
+	return tx.Query(sql, args...)
 }
 
 // GetOne queries and returns one record from database.
@@ -395,24 +395,30 @@ func (tx *TX) GetStructs(objPointerSlice interface{}, sql string, args ...interf
 // the conversion. If parameter `pointer` is type of slice, it calls GetStructs internally
 // for conversion.
 func (tx *TX) GetScan(pointer interface{}, sql string, args ...interface{}) error {
-	t := reflect.TypeOf(pointer)
-	k := t.Kind()
-	if k != reflect.Ptr {
-		return fmt.Errorf("params should be type of pointer, but got: %v", k)
+	reflectInfo := utils.OriginTypeAndKind(pointer)
+	if reflectInfo.InputKind != reflect.Ptr {
+		return gerror.NewCodef(
+			gcode.CodeInvalidParameter,
+			"params should be type of pointer, but got: %v",
+			reflectInfo.InputKind,
+		)
 	}
-	k = t.Elem().Kind()
-	switch k {
+	switch reflectInfo.OriginKind {
 	case reflect.Array, reflect.Slice:
 		return tx.GetStructs(pointer, sql, args...)
+
 	case reflect.Struct:
 		return tx.GetStruct(pointer, sql, args...)
-	default:
-		return fmt.Errorf("element type should be type of struct/slice, unsupported: %v", k)
 	}
+	return gerror.NewCodef(
+		gcode.CodeInvalidParameter,
+		`in valid parameter type "%v", of which element type should be type of struct/slice`,
+		reflectInfo.InputType,
+	)
 }
 
 // GetValue queries and returns the field value from database.
-// The sql should queries only one field from database, or else it returns only one
+// The sql should query only one field from database, or else it returns only one
 // field of the result.
 func (tx *TX) GetValue(sql string, args ...interface{}) (Value, error) {
 	one, err := tx.GetOne(sql, args...)
@@ -527,7 +533,7 @@ func (tx *TX) Save(table string, data interface{}, batch ...int) (sql.Result, er
 // "money>? AND name like ?", 99999, "vip_%"
 // "status IN (?)", g.Slice{1,2,3}
 // "age IN(?,?)", 18, 50
-// User{ Id : 1, UserName : "john"}
+// User{ Id : 1, UserName : "john"}.
 func (tx *TX) Update(table string, data interface{}, condition interface{}, args ...interface{}) (sql.Result, error) {
 	return tx.Model(table).Ctx(tx.ctx).Data(data).Where(condition, args...).Update()
 }
@@ -542,7 +548,7 @@ func (tx *TX) Update(table string, data interface{}, condition interface{}, args
 // "money>? AND name like ?", 99999, "vip_%"
 // "status IN (?)", g.Slice{1,2,3}
 // "age IN(?,?)", 18, 50
-// User{ Id : 1, UserName : "john"}
+// User{ Id : 1, UserName : "john"}.
 func (tx *TX) Delete(table string, condition interface{}, args ...interface{}) (sql.Result, error) {
 	return tx.Model(table).Ctx(tx.ctx).Where(condition, args...).Delete()
 }

@@ -9,16 +9,19 @@ package gtrace
 
 import (
 	"context"
-	"github.com/gogf/gf/container/gmap"
-	"github.com/gogf/gf/container/gvar"
-	"github.com/gogf/gf/net/gipv4"
-	"github.com/gogf/gf/os/gcmd"
+	"os"
+	"strings"
+
+	"github.com/gogf/gf/v2/internal/command"
+	"github.com/gogf/gf/v2/util/gconv"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
-	"os"
-	"strings"
+
+	"github.com/gogf/gf/v2/container/gmap"
+	"github.com/gogf/gf/v2/container/gvar"
+	"github.com/gogf/gf/v2/net/gipv4"
 )
 
 const (
@@ -33,7 +36,7 @@ var (
 	intranetIpStr            = strings.Join(intranetIps, ",")
 	hostname, _              = os.Hostname()
 	tracingInternal          = true       // tracingInternal enables tracing for internal type spans.
-	tracingMaxContentLogSize = 256 * 1024 // Max log size for request and response body, especially for HTTP/RPC request.
+	tracingMaxContentLogSize = 512 * 1024 // Max log size for request and response body, especially for HTTP/RPC request.
 	// defaultTextMapPropagator is the default propagator for context propagation between peers.
 	defaultTextMapPropagator = propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
@@ -42,8 +45,8 @@ var (
 )
 
 func init() {
-	tracingInternal = gcmd.GetOptWithEnv(commandEnvKeyForTracingInternal, true).Bool()
-	if maxContentLogSize := gcmd.GetOptWithEnv(commandEnvKeyForMaxContentLogSize).Int(); maxContentLogSize > 0 {
+	tracingInternal = gconv.Bool(command.GetOptWithEnv(commandEnvKeyForTracingInternal, "true"))
+	if maxContentLogSize := gconv.Int(command.GetOptWithEnv(commandEnvKeyForMaxContentLogSize)); maxContentLogSize > 0 {
 		tracingMaxContentLogSize = maxContentLogSize
 	}
 	CheckSetDefaultTextMapPropagator()
@@ -70,7 +73,7 @@ func CommonLabels() []attribute.KeyValue {
 
 // IsActivated checks and returns if tracing feature is activated.
 func IsActivated(ctx context.Context) bool {
-	return GetTraceId(ctx) != ""
+	return GetTraceID(ctx) != ""
 }
 
 // CheckSetDefaultTextMapPropagator sets the default TextMapPropagator if it is not set previously.
@@ -86,28 +89,28 @@ func GetDefaultTextMapPropagator() propagation.TextMapPropagator {
 	return defaultTextMapPropagator
 }
 
-// GetTraceId retrieves and returns TraceId from context.
+// GetTraceID retrieves and returns TraceId from context.
 // It returns an empty string is tracing feature is not activated.
-func GetTraceId(ctx context.Context) string {
+func GetTraceID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
-	traceId := trace.SpanContextFromContext(ctx).TraceID()
-	if traceId.IsValid() {
-		return traceId.String()
+	traceID := trace.SpanContextFromContext(ctx).TraceID()
+	if traceID.IsValid() {
+		return traceID.String()
 	}
 	return ""
 }
 
-// GetSpanId retrieves and returns SpanId from context.
+// GetSpanID retrieves and returns SpanId from context.
 // It returns an empty string is tracing feature is not activated.
-func GetSpanId(ctx context.Context) string {
+func GetSpanID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
-	spanId := trace.SpanContextFromContext(ctx).SpanID()
-	if spanId.IsValid() {
-		return spanId.String()
+	spanID := trace.SpanContextFromContext(ctx).SpanID()
+	if spanID.IsValid() {
+		return spanID.String()
 	}
 	return ""
 }

@@ -8,17 +8,18 @@ package gfile
 
 import (
 	"bytes"
-	"github.com/gogf/gf/errors/gcode"
-	"github.com/gogf/gf/errors/gerror"
 	"os"
 	"os/exec"
 	"os/user"
 	"runtime"
 	"strings"
+
+	"github.com/gogf/gf/v2/errors/gcode"
+	"github.com/gogf/gf/v2/errors/gerror"
 )
 
 // Home returns absolute path of current user's home directory.
-// The optional parameter <names> specifies the its sub-folders/sub-files,
+// The optional parameter `names` specifies the sub-folders/sub-files,
 // which will be joined with current system separator and returned with the path.
 func Home(names ...string) (string, error) {
 	path, err := getHomePath()
@@ -37,7 +38,7 @@ func getHomePath() (string, error) {
 	if nil == err {
 		return u.HomeDir, nil
 	}
-	if "windows" == runtime.GOOS {
+	if runtime.GOOS == "windows" {
 		return homeWindows()
 	}
 	return homeUnix()

@@ -7,14 +7,14 @@
 package gcron
 
 import (
-	"github.com/gogf/gf/errors/gcode"
-	"github.com/gogf/gf/errors/gerror"
-	"github.com/gogf/gf/os/gtime"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gogf/gf/text/gregex"
+	"github.com/gogf/gf/v2/errors/gcode"
+	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/os/gtime"
+	"github.com/gogf/gf/v2/text/gregex"
 )
 
 // cronSchedule is the schedule for cron job.
@@ -219,11 +219,11 @@ func parsePatternItemValue(value string, itemType int) (int, error) {
 		// it converts the value to number according to predefined map.
 		switch itemType {
 		case patternItemTypeWeek:
-			if number, ok := monthMap[strings.ToLower(value)]; ok {
+			if number, ok := weekMap[strings.ToLower(value)]; ok {
 				return number, nil
 			}
 		case patternItemTypeMonth:
-			if number, ok := weekMap[strings.ToLower(value)]; ok {
+			if number, ok := monthMap[strings.ToLower(value)]; ok {
 				return number, nil
 			}
 		}

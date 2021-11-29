@@ -10,16 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gogf/gf/util/gutil"
-
-	"github.com/gogf/gf/text/gstr"
-
-	"github.com/gogf/gf/os/gtime"
-
-	"github.com/gogf/gf/encoding/gbinary"
-
-	"github.com/gogf/gf/text/gregex"
-	"github.com/gogf/gf/util/gconv"
+	"github.com/gogf/gf/v2/encoding/gbinary"
+	"github.com/gogf/gf/v2/os/gtime"
+	"github.com/gogf/gf/v2/text/gregex"
+	"github.com/gogf/gf/v2/text/gstr"
+	"github.com/gogf/gf/v2/util/gconv"
+	"github.com/gogf/gf/v2/util/gutil"
 )
 
 // convertFieldValueToLocalValue automatically checks and converts field value from database type
@@ -109,7 +105,7 @@ func (c *Core) convertFieldValueToLocalValue(fieldValue interface{}, fieldType s
 		return t.String()
 
 	default:
-		// Auto detect field type, using key match.
+		// Auto-detect field type, using key match.
 		switch {
 		case strings.Contains(t, "text") || strings.Contains(t, "char") || strings.Contains(t, "character"):
 			return gconv.String(fieldValue)
@@ -151,45 +147,33 @@ func (c *Core) convertFieldValueToLocalValue(fieldValue interface{}, fieldType s
 // mappingAndFilterData automatically mappings the map key to table field and removes
 // all key-value pairs that are not the field of given table.
 func (c *Core) mappingAndFilterData(schema, table string, data map[string]interface{}, filter bool) (map[string]interface{}, error) {
-	if fieldsMap, err := c.db.TableFields(c.GetCtx(), table, schema); err == nil {
-		fieldsKeyMap := make(map[string]interface{}, len(fieldsMap))
-		for k, _ := range fieldsMap {
-			fieldsKeyMap[k] = nil
-		}
-		// Automatic data key to table field name mapping.
-		var foundKey string
-		for dataKey, dataValue := range data {
-			if _, ok := fieldsKeyMap[dataKey]; !ok {
-				foundKey, _ = gutil.MapPossibleItemByKey(fieldsKeyMap, dataKey)
-				if foundKey != "" {
-					data[foundKey] = dataValue
-					delete(data, dataKey)
-				}
+	fieldsMap, err := c.db.TableFields(c.GetCtx(), c.guessPrimaryTableName(table), schema)
+	if err != nil {
+		return nil, err
+	}
+	fieldsKeyMap := make(map[string]interface{}, len(fieldsMap))
+	for k := range fieldsMap {
+		fieldsKeyMap[k] = nil
+	}
+	// Automatic data key to table field name mapping.
+	var foundKey string
+	for dataKey, dataValue := range data {
+		if _, ok := fieldsKeyMap[dataKey]; !ok {
+			foundKey, _ = gutil.MapPossibleItemByKey(fieldsKeyMap, dataKey)
+			if foundKey != "" {
+				data[foundKey] = dataValue
+				delete(data, dataKey)
 			}
 		}
-		// Data filtering.
-		// It deletes all key-value pairs that has incorrect field name.
-		if filter {
-			for dataKey, _ := range data {
-				if _, ok := fieldsMap[dataKey]; !ok {
-					delete(data, dataKey)
-				}
+	}
+	// Data filtering.
+	// It deletes all key-value pairs that has incorrect field name.
+	if filter {
+		for dataKey := range data {
+			if _, ok := fieldsMap[dataKey]; !ok {
+				delete(data, dataKey)
 			}
 		}
 	}
 	return data, nil
 }
-
-//// filterFields removes all key-value pairs which are not the field of given table.
-//func (c *Core) filterFields(schema, table string, data map[string]interface{}) map[string]interface{} {
-//	// It must use data copy here to avoid its changing the origin data map.
-//	newDataMap := make(map[string]interface{}, len(data))
-//	if fields, err := c.db.TableFields(table, schema); err == nil {
-//		for k, v := range data {
-//			if _, ok := fields[k]; ok {
-//				newDataMap[k] = v
-//			}
-//		}
-//	}
-//	return newDataMap
-//}

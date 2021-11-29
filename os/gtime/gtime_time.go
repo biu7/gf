@@ -8,10 +8,11 @@ package gtime
 
 import (
 	"bytes"
-	"github.com/gogf/gf/errors/gcode"
-	"github.com/gogf/gf/errors/gerror"
 	"strconv"
 	"time"
+
+	"github.com/gogf/gf/v2/errors/gcode"
+	"github.com/gogf/gf/v2/errors/gerror"
 )
 
 // Time is a wrapper for time.Time for additional features.
@@ -19,8 +20,8 @@ type Time struct {
 	wrapper
 }
 
-// apiUnixNano is an interface definition commonly for custom time.Time wrapper.
-type apiUnixNano interface {
+// iUnixNano is an interface definition commonly for custom time.Time wrapper.
+type iUnixNano interface {
 	UnixNano() int64
 }
 
@@ -69,7 +70,7 @@ func New(param ...interface{}) *Time {
 			return NewFromTimeStamp(r)
 
 		default:
-			if v, ok := r.(apiUnixNano); ok {
+			if v, ok := r.(iUnixNano); ok {
 				return NewFromTimeStamp(v.UnixNano())
 			}
 		}

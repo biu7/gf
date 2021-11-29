@@ -7,10 +7,12 @@
 package gdb_test
 
 import (
-	"github.com/go-sql-driver/mysql"
-	"github.com/gogf/gf/database/gdb"
-	"github.com/gogf/gf/test/gtest"
 	"testing"
+
+	"github.com/go-sql-driver/mysql"
+
+	"github.com/gogf/gf/v2/database/gdb"
+	"github.com/gogf/gf/v2/test/gtest"
 )
 
 func Test_Instance(t *testing.T) {
