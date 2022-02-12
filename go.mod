@@ -12,9 +12,9 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/grokify/html-strip-tags-go v0.0.0-20190921062105-daaa06bf1aaf
 	github.com/olekukonko/tablewriter v0.0.5
-	go.opentelemetry.io/otel v1.0.0
+	go.opentelemetry.io/otel v1.3.0
 	go.opentelemetry.io/otel/oteltest v1.0.0-RC2
-	go.opentelemetry.io/otel/trace v1.0.0
+	go.opentelemetry.io/otel/trace v1.3.0
 	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
 	golang.org/x/text v0.3.6
 	google.golang.org/protobuf v1.26.0

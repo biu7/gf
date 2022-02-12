@@ -74,17 +74,17 @@ func MiddlewareServerTracing(r *Request) {
 		span.SetStatus(codes.Error, fmt.Sprintf(`%+v`, err))
 	}
 	// Response content logging.
-	var resBodyContent string
-	resBodyContent = r.Response.BufferString()
-	resBodyContent = gstr.StrLimit(
-		r.Response.BufferString(),
-		gtrace.MaxContentLogSize(),
-		"...",
-	)
+	//var resBodyContent string
+	//resBodyContent = r.Response.BufferString()
+	//resBodyContent = gstr.StrLimit(
+	//	r.Response.BufferString(),
+	//	gtrace.MaxContentLogSize(),
+	//	"...",
+	//)
 
 	span.AddEvent(tracingEventHttpResponse, trace.WithAttributes(
 		attribute.String(tracingEventHttpResponseHeaders, gconv.String(httputil.HeaderToMap(r.Response.Header()))),
-		attribute.String(tracingEventHttpResponseBody, resBodyContent),
+		//attribute.String(tracingEventHttpResponseBody, resBodyContent),
 	))
 	return
 }
