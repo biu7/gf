@@ -217,7 +217,7 @@ func (r *Response) WriteProtoBuf(content interface{}) error {
 		if err != nil {
 			return err
 		}
-		r.Header().Set("Content-Type", "application/x-protobuf")
+		r.Header().Set("Content-Type", fmt.Sprintf("application/x-protobuf; messageType=\"%s\"", content.(proto.Message).ProtoReflect().Descriptor().FullName()))
 		r.Write(b)
 		return nil
 	}
