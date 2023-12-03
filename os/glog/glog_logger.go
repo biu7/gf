@@ -17,7 +17,6 @@ import (
 	"github.com/gogf/gf/os/gfpool"
 	"github.com/gogf/gf/os/gmlock"
 	"github.com/gogf/gf/os/gtimer"
-	"go.opentelemetry.io/otel/trace"
 	"io"
 	"os"
 	"strings"
@@ -175,10 +174,6 @@ func (l *Logger) print(ctx context.Context, level int, values ...interface{}) {
 	// Convert value to string.
 	if ctx != nil {
 		// Tracing values.
-		spanCtx := trace.SpanContextFromContext(ctx)
-		if traceId := spanCtx.TraceID(); traceId.IsValid() {
-			input.CtxStr = traceId.String()
-		}
 		// Context values.
 		if len(l.config.CtxKeys) > 0 {
 			for _, ctxKey := range l.config.CtxKeys {

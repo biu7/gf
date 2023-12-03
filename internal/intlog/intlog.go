@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"github.com/gogf/gf/debug/gdebug"
 	"github.com/gogf/gf/internal/utils"
-	"go.opentelemetry.io/otel/trace"
 	"path/filepath"
 	"time"
 )
@@ -111,13 +110,6 @@ func doPrint(ctx context.Context, content string, stack bool) {
 
 // traceIdStr retrieves and returns the trace id string for logging output.
 func traceIdStr(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	spanCtx := trace.SpanContextFromContext(ctx)
-	if traceId := spanCtx.TraceID(); traceId.IsValid() {
-		return "{" + traceId.String() + "}"
-	}
 	return ""
 }
 
